@@ -1,7 +1,28 @@
+// Helper to create empty service structure
+const emptyService = () => ({
+    description: "Click to add description...",
+    achievements: [],
+    events: []
+});
+
 export const MOCK_DATA = {
     "Home": {
-        description: "Welcome to the Platform Services Portal.",
-        events: []
+        "SA L3 Services": {
+            "Unix L3": emptyService(),
+            "Wintel L3": emptyService()
+        },
+        "Platform L2 Services": {
+            "Unix L2": emptyService(),
+            "Wintel L2": emptyService()
+        },
+        "Build & Delivery": {
+            "APAC Build": emptyService(),
+            "NAM Build": emptyService()
+        },
+        "Virtualization Services": {
+            "VM Guest Services": emptyService(),
+            "CAS Services": emptyService()
+        }
     },
     "Team details": {
         "General Service": {
