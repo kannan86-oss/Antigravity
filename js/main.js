@@ -36,19 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         Render.renderTopNav(Object.keys(MOCK_DATA), handleTopTabClick);
 
         const dataObj = MOCK_DATA[key];
-
         let keys = [];
-        if (key === 'Home') {
-            keys = []; // Home has custom view in this logic
-            showHomeView(dataObj);
-        } else {
-            // Filter Sidebar keys
-            keys = Object.keys(dataObj).filter(k => k !== 'description');
-            Render.renderSidebar(keys, handleSidebarClick);
 
-            // Auto Select First
-            if (keys.length > 0) handleSidebarClick(keys[0]);
-        }
+        // Filter Sidebar keys (exclude direct properties if any, keep groups)
+        // For Home/Team Details, these are the Service Groups (SA L3, etc.)
+        keys = Object.keys(dataObj).filter(k => typeof dataObj[k] === 'object' && !['managers', 'employees', 'achievements', 'events'].includes(k));
+
+        Render.renderSidebar(keys, handleSidebarClick);
+
+        // Auto Select First
+        if (keys.length > 0) handleSidebarClick(keys[0]);
     }
 
     function handleSidebarClick(key) {
