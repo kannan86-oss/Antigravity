@@ -61,7 +61,12 @@ export const Render = {
         viewSubtitle.textContent = data.description || `Details for ${title}`;
 
         // Managers
+        // Managers & Dashboard
         const leadershipSection = document.getElementById('leadership-section');
+
+        // Remove existing dashboard if any
+        const existingDash = document.getElementById('home-dashboard');
+        if (existingDash) existingDash.remove();
 
         if (Store.currentTopTab === 'Team details') {
             leadershipSection.style.display = 'block';
@@ -81,6 +86,113 @@ export const Render = {
                     }
                 });
             }
+        } else if (Store.currentTopTab === 'Home') {
+            // HOME DASHBOARD LOGIC
+            leadershipSection.style.display = 'none';
+
+            // Create Dashboard Container
+            const dash = document.createElement('div');
+            dash.id = 'home-dashboard';
+            dash.className = 'dashboard-grid';
+
+            // 1. About Service (Full Width)
+            const aboutCard = document.createElement('div');
+            aboutCard.className = 'dashboard-card full-width';
+            aboutCard.innerHTML = `
+                <div class="card-header">
+                    <h3>📃 About the Service</h3>
+                </div>
+                <div class="editable-text" contenteditable="true">${data.description || 'Click to add description...'}</div>
+            `;
+            // Save on blur
+            aboutCard.querySelector('.editable-text').addEventListener('blur', (e) => {
+                data.description = e.target.innerText;
+            });
+            dash.appendChild(aboutCard);
+
+            // 2. Recent Achievements
+            const achCard = document.createElement('div');
+            achCard.className = 'dashboard-card';
+            achCard.innerHTML = `
+                <div class="card-header">
+                    <h3>🏆 Recent Achievements</h3>
+                </div>
+                <ul class="item-list" id="ach-list"></ul>
+                <div class="input-group">
+                    <input type="text" id="new-ach" placeholder="Add achievement...">
+                    <button id="add-ach">+</button>
+                </div>
+            `;
+
+            const renderAch = () => {
+                const list = achCard.querySelector('#ach-list');
+                list.innerHTML = '';
+                (data.achievements || []).forEach((item, idx) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${item}</span> <button class="delete-btn" style="color:red;background:none;border:none;cursor:pointer;">×</button>`;
+                    li.querySelector('button').onclick = () => {
+                        data.achievements.splice(idx, 1);
+                        renderAch();
+                    };
+                    list.appendChild(li);
+                });
+            };
+            renderAch();
+
+            achCard.querySelector('#add-ach').onclick = () => {
+                const input = achCard.querySelector('#new-ach');
+                if (input.value.trim()) {
+                    if (!data.achievements) data.achievements = [];
+                    data.achievements.push(input.value.trim());
+                    input.value = '';
+                    renderAch();
+                }
+            };
+            dash.appendChild(achCard);
+
+            // 3. Upcoming Events
+            const evtCard = document.createElement('div');
+            evtCard.className = 'dashboard-card';
+            evtCard.innerHTML = `
+                <div class="card-header">
+                    <h3>📅 Upcoming Events</h3>
+                </div>
+                <ul class="item-list" id="evt-list"></ul>
+                <div class="input-group">
+                    <input type="text" id="new-evt" placeholder="Add event...">
+                    <button id="add-evt">+</button>
+                </div>
+            `;
+
+            const renderEvt = () => {
+                const list = evtCard.querySelector('#evt-list');
+                list.innerHTML = '';
+                (data.events || []).forEach((item, idx) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${item}</span> <button class="delete-btn" style="color:red;background:none;border:none;cursor:pointer;">×</button>`;
+                    li.querySelector('button').onclick = () => {
+                        data.events.splice(idx, 1);
+                        renderEvt();
+                    };
+                    list.appendChild(li);
+                });
+            };
+            renderEvt();
+
+            evtCard.querySelector('#add-evt').onclick = () => {
+                const input = evtCard.querySelector('#new-evt');
+                if (input.value.trim()) {
+                    if (!data.events) data.events = [];
+                    data.events.push(input.value.trim());
+                    input.value = '';
+                    renderEvt();
+                }
+            };
+            dash.appendChild(evtCard);
+
+            // Append to Data View
+            document.getElementById('data-view').insertBefore(dash, document.querySelector('.table-header-controls'));
+
         } else {
             leadershipSection.style.display = 'none';
         }
