@@ -61,21 +61,28 @@ export const Render = {
         viewSubtitle.textContent = data.description || `Details for ${title}`;
 
         // Managers
-        managerGrid.innerHTML = '';
-        if (data.managers) {
-            ['l1', 'l2', 'l3'].forEach(level => {
-                if (data.managers[level]) {
-                    const card = document.createElement('div');
-                    card.className = 'manager-card';
-                    card.innerHTML = `
-                        <small>${level.toUpperCase()} Manager</small>
-                        <h4>${data.managers[level]}</h4>
-                        <div style="margin-top:0.5rem; font-size:0.8rem; opacity:0.7;">Global Lead</div>
-                        <div class="card-action"><button class="icon-btn">✏️</button></div>
-                    `;
-                    managerGrid.appendChild(card);
-                }
-            });
+        const leadershipSection = document.getElementById('leadership-section');
+
+        if (Store.currentTopTab === 'Team details') {
+            leadershipSection.style.display = 'block';
+            managerGrid.innerHTML = '';
+            if (data.managers) {
+                ['l1', 'l2', 'l3'].forEach(level => {
+                    if (data.managers[level]) {
+                        const card = document.createElement('div');
+                        card.className = 'manager-card';
+                        card.innerHTML = `
+                            <small>${level.toUpperCase()} Manager</small>
+                            <h4>${data.managers[level]}</h4>
+                            <div style="margin-top:0.5rem; font-size:0.8rem; opacity:0.7;">Global Lead</div>
+                            <div class="card-action"><button class="icon-btn">✏️</button></div>
+                        `;
+                        managerGrid.appendChild(card);
+                    }
+                });
+            }
+        } else {
+            leadershipSection.style.display = 'none';
         }
     },
 
