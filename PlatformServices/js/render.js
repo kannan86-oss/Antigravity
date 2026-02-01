@@ -1,253 +1,277 @@
-import { Store } from './store.js';
+// --- Rendering Layer ---
+// Depends on: ServiceData, AppState
 
-export const Render = {
-    // --- Top Navigation ---
-    renderTopNav(keys, onSelect) {
-        const topNav = document.getElementById('top-nav');
-        topNav.innerHTML = '';
-        keys.forEach(key => {
+const Render = {
+    // Icons
+    Icons: {
+        doc: '<span class="icon-doc">📄</span>',
+        edit: '<span class="icon-edit">✏️</span>',
+        trophy: '<span class="icon-trophy">🏆</span>',
+        calendar: '<span class="icon-calendar">📅</span>',
+        add: '+'
+    },
+
+    init() {
+        this.renderTopNav();
+        this.renderSidebar();
+        this.renderMainContent();
+    },
+
+    renderTopNav() {
+        const nav = document.getElementById('top-nav');
+        if (!nav) return;
+        nav.innerHTML = '';
+        TopNavItems.forEach(key => {
             const el = document.createElement('div');
             el.className = 'nav-item';
             el.textContent = key;
-            el.onclick = () => onSelect(key);
-            if (key === Store.currentTopTab) el.classList.add('active');
-            topNav.appendChild(el);
+            if (key === AppState.currentTopTab) el.classList.add('active');
+            el.onclick = () => App.switchTopTab(key);
+            nav.appendChild(el);
         });
     },
 
-    // --- Sidebar ---
-    renderSidebar(keys, onSelect) {
-        const sidebarContent = document.getElementById('sidebar-content');
-        sidebarContent.innerHTML = '';
+    renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('sidebar-content');
+        if (!content) return;
+        content.innerHTML = '';
 
-        if (keys.length === 0) {
-            sidebarContent.innerHTML = '<div style="padding:1rem; color: #94a3b8;">No services available.</div>';
+        // Only show Service Directory if on Home (or we could show it always?)
+        // Prompt implies Sidebar Items are: SA L3, Platform L2... 
+        // These are strictly part of the "Service Directory".
+
+        // We will render these groups.
+        const groups = Object.keys(ServiceData.Services);
+
+        groups.forEach(key => {
+            const item = document.createElement('div');
+            item.className = 'sidebar-item';
+
+            // Icon logic
+            let iconChar = '📁';
+            if (key.includes('L3')) iconChar = '🛠️';
+            if (key.includes('L2')) iconChar = '⚙️';
+            if (key.includes('Build')) iconChar = '🏗️';
+            if (key.includes('Virtualization')) iconChar = '☁️';
+
+            item.innerHTML = `
+                <span class="icon">${iconChar}</span>
+                <span class="text">${key}</span>
+            `;
+
+            if (AppState.currentSidebarSelection === key) item.classList.add('active');
+
+            item.onclick = () => App.selectSidebarItem(key);
+            content.appendChild(item);
+        });
+
+        // Handle Collapse Class
+        if (AppState.isSidebarCollapsed) {
+            sidebar.classList.add('sidebar-collapsed');
+        } else {
+            sidebar.classList.remove('sidebar-collapsed');
+        }
+    },
+
+    renderMainContent() {
+        const container = document.getElementById('main-content');
+        container.innerHTML = '';
+
+        // 1. Home -> Overview (Default)
+        if (AppState.currentTopTab === 'Home' && !AppState.currentSidebarSelection) {
+            this.renderPlatformOverview(container);
             return;
         }
 
-        keys.forEach(key => {
-            const el = document.createElement('div');
-            el.className = 'sidebar-item';
-            el.textContent = key;
-            el.onclick = () => onSelect(key);
-            if (key === Store.currentSidebarTab) el.classList.add('active');
-            sidebarContent.appendChild(el);
+        // 2. Home -> Service Group selected
+        if (AppState.currentTopTab === 'Home' && AppState.currentSidebarSelection) {
+            this.renderServiceGroup(container, AppState.currentSidebarSelection);
+            return;
+        }
+
+        // 3. Other Tabs
+        container.innerHTML = `<div style="padding:2rem;"><h2>${AppState.currentTopTab}</h2><p>Placeholder content.</p></div>`;
+    },
+
+    renderPlatformOverview(container) {
+        // Wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'data-container';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'content-header';
+        header.innerHTML = `
+            <h1>Platform Services Overview</h1>
+            <p>Welcome to the central hub.</p>
+        `;
+        wrapper.appendChild(header);
+
+        // Grid
+        const grid = document.createElement('div');
+        grid.className = 'dashboard-grid';
+
+        // Card 1: About (Full Width)
+        const aboutData = ServiceData.Overview;
+        const aboutCard = this.createCard('about', 'About the Service', this.Icons.doc, true);
+
+        // Edit Button in Header
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn';
+        editBtn.innerHTML = this.Icons.edit;
+        editBtn.title = "Edit Description";
+        aboutCard.querySelector('.card-header').appendChild(editBtn);
+
+        // Content
+        const descDiv = document.createElement('div');
+        descDiv.className = 'editable-text';
+        descDiv.contentEditable = true;
+        descDiv.innerText = aboutData.description;
+        descDiv.onblur = (e) => aboutData.description = e.target.innerText;
+        aboutCard.appendChild(descDiv);
+
+        grid.appendChild(aboutCard);
+
+        // Card 2: Achievements
+        const achCard = this.createCard('achievements', 'Recent Achievements', this.Icons.trophy);
+        this.renderAchievementsList(achCard, aboutData.achievements);
+        this.renderRichInput(achCard, (text) => {
+            const date = new Date().toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            aboutData.achievements.push({ text, date });
+            this.renderAchievementsList(achCard, aboutData.achievements);
+        });
+        grid.appendChild(achCard);
+
+        // Card 3: Events
+        const evtCard = this.createCard('events', 'Upcoming Events', this.Icons.calendar);
+        this.renderEventsList(evtCard, aboutData.events);
+        this.renderRichInput(evtCard, (text) => {
+            aboutData.events.push(text);
+            this.renderEventsList(evtCard, aboutData.events);
+        });
+        grid.appendChild(evtCard);
+
+        wrapper.appendChild(grid);
+        container.appendChild(wrapper);
+    },
+
+    renderServiceGroup(container, groupKey) {
+        const groupData = ServiceData.Services[groupKey];
+        if (!groupData) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'data-container';
+
+        wrapper.innerHTML = `<h2 class="section-title">${groupKey}</h2>`;
+
+        // Render Sub-Services as simple cards for now? 
+        // Or reuse the dashboard logic for the FIRST sub-service?
+        // Prompt said: "load the specific service details"
+        // Let's list them first.
+        const list = document.createElement('div');
+
+        Object.keys(groupData).forEach(subKey => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '2rem';
+            div.innerHTML = `<h3>${subKey}</h3>`;
+
+            // Just show description for now to verify
+            const d = groupData[subKey];
+            div.innerHTML += `<p>${d.description}</p>`;
+            list.appendChild(div);
+        });
+
+        wrapper.appendChild(list);
+        container.appendChild(wrapper);
+    },
+
+    // --- Components ---
+
+    createCard(id, title, icon, fullWidth = false) {
+        const card = document.createElement('div');
+        card.className = `dashboard-card ${fullWidth ? 'full-width' : ''}`;
+        card.innerHTML = `
+            <div class="card-header">
+                <h3>${icon} ${title}</h3>
+            </div>
+        `;
+        return card;
+    },
+
+    renderAchievementsList(card, data) {
+        let ul = card.querySelector('ul');
+        if (!ul) {
+            ul = document.createElement('ul');
+            ul.className = 'item-list';
+            // Insert after header
+            card.insertBefore(ul, card.querySelector('.input-area') || null);
+        }
+        ul.innerHTML = '';
+        data.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="ach-item">
+                    <span class="check">✓</span>
+                    <div class="ach-content">
+                        <div class="ach-text">${item.text}</div>
+                        <div class="ach-date">${item.date}</div>
+                    </div>
+                </div>
+            `;
+            ul.appendChild(li);
         });
     },
 
-    // --- Sub Tabs ---
-    renderSubTabs(keys, onSelect) {
-        const subTabsContainer = document.getElementById('sub-tabs');
-        subTabsContainer.innerHTML = '';
-
-        keys.forEach(key => {
-            const el = document.createElement('div');
-            el.className = 'sub-tab';
-            el.textContent = key;
-            el.onclick = () => onSelect(key);
-            if (key === Store.currentSubTab) el.classList.add('active');
-            subTabsContainer.appendChild(el);
+    renderEventsList(card, data) {
+        let ul = card.querySelector('ul');
+        if (!ul) {
+            ul = document.createElement('ul');
+            ul.className = 'item-list';
+            card.insertBefore(ul, card.querySelector('.input-area') || null);
+        }
+        ul.innerHTML = '';
+        data.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="evt-item">
+                    <span class="bullet">•</span>
+                    <span>${item}</span>
+                </div>
+            `;
+            ul.appendChild(li);
         });
     },
 
-    // --- Data View ---
-    renderDataView(title, data) {
-        const viewTitle = document.getElementById('view-title');
-        const viewSubtitle = document.getElementById('view-subtitle');
-        const managerGrid = document.getElementById('manager-grid');
+    renderRichInput(card, onAdd) {
+        let container = card.querySelector('.input-area');
+        if (container) return; // Already exists
 
-        // Update Title/Subtitle
-        viewTitle.textContent = title;
-        viewSubtitle.textContent = data.description || `Details for ${title}`;
+        container = document.createElement('div');
+        container.className = 'input-area';
 
-        // Managers
-        // Managers & Dashboard
-        const leadershipSection = document.getElementById('leadership-section');
+        container.innerHTML = `
+            <div class="rich-toolbar">
+                <button title="Bold"><b>B</b></button>
+                <button title="Italic"><i>I</i></button>
+                <button title="Underline"><u>U</u></button>
+            </div>
+            <div class="input-row">
+                <input type="text" placeholder="Add entry...">
+                <button class="add-btn">+</button>
+            </div>
+        `;
 
-        // Remove existing dashboard if any
-        const existingDash = document.getElementById('home-dashboard');
-        if (existingDash) existingDash.remove();
+        const input = container.querySelector('input');
+        const btn = container.querySelector('.add-btn');
 
-        if (Store.currentTopTab === 'Team details') {
-            leadershipSection.style.display = 'block';
-            managerGrid.innerHTML = '';
-            if (data.managers) {
-                ['l1', 'l2', 'l3'].forEach(level => {
-                    if (data.managers[level]) {
-                        const card = document.createElement('div');
-                        card.className = 'manager-card';
-                        card.innerHTML = `
-                            <small>${level.toUpperCase()} Manager</small>
-                            <h4>${data.managers[level]}</h4>
-                            <div style="margin-top:0.5rem; font-size:0.8rem; opacity:0.7;">Global Lead</div>
-                            <div class="card-action"><button class="icon-btn">✏️</button></div>
-                        `;
-                        managerGrid.appendChild(card);
-                    }
-                });
+        btn.onclick = () => {
+            if (input.value.trim()) {
+                onAdd(input.value.trim());
+                input.value = '';
             }
-        } else if (Store.currentTopTab === 'Home') {
-            // HOME DASHBOARD LOGIC
-            leadershipSection.style.display = 'none';
+        };
 
-            // Create Dashboard Container
-            const dash = document.createElement('div');
-            dash.id = 'home-dashboard';
-            dash.className = 'dashboard-grid';
-
-            // 1. About Service (Full Width)
-            const aboutCard = document.createElement('div');
-            aboutCard.className = 'dashboard-card full-width';
-            aboutCard.innerHTML = `
-                <div class="card-header">
-                    <h3>📃 About the Service</h3>
-                </div>
-                <div class="editable-text" contenteditable="true">${data.description || 'Click to add description...'}</div>
-            `;
-            // Save on blur
-            aboutCard.querySelector('.editable-text').addEventListener('blur', (e) => {
-                data.description = e.target.innerText;
-            });
-            dash.appendChild(aboutCard);
-
-            // 2. Recent Achievements
-            const achCard = document.createElement('div');
-            achCard.className = 'dashboard-card';
-            achCard.innerHTML = `
-                <div class="card-header">
-                    <h3>🏆 Recent Achievements</h3>
-                </div>
-                <ul class="item-list" id="ach-list"></ul>
-                <div class="input-group">
-                    <input type="text" id="new-ach" placeholder="Add achievement...">
-                    <button id="add-ach">+</button>
-                </div>
-            `;
-
-            const renderAch = () => {
-                const list = achCard.querySelector('#ach-list');
-                list.innerHTML = '';
-                (data.achievements || []).forEach((item, idx) => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span>${item}</span> <button class="delete-btn" style="color:red;background:none;border:none;cursor:pointer;">×</button>`;
-                    li.querySelector('button').onclick = () => {
-                        data.achievements.splice(idx, 1);
-                        renderAch();
-                    };
-                    list.appendChild(li);
-                });
-            };
-            renderAch();
-
-            achCard.querySelector('#add-ach').onclick = () => {
-                const input = achCard.querySelector('#new-ach');
-                if (input.value.trim()) {
-                    if (!data.achievements) data.achievements = [];
-                    data.achievements.push(input.value.trim());
-                    input.value = '';
-                    renderAch();
-                }
-            };
-            dash.appendChild(achCard);
-
-            // 3. Upcoming Events
-            const evtCard = document.createElement('div');
-            evtCard.className = 'dashboard-card';
-            evtCard.innerHTML = `
-                <div class="card-header">
-                    <h3>📅 Upcoming Events</h3>
-                </div>
-                <ul class="item-list" id="evt-list"></ul>
-                <div class="input-group">
-                    <input type="text" id="new-evt" placeholder="Add event...">
-                    <button id="add-evt">+</button>
-                </div>
-            `;
-
-            const renderEvt = () => {
-                const list = evtCard.querySelector('#evt-list');
-                list.innerHTML = '';
-                (data.events || []).forEach((item, idx) => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span>${item}</span> <button class="delete-btn" style="color:red;background:none;border:none;cursor:pointer;">×</button>`;
-                    li.querySelector('button').onclick = () => {
-                        data.events.splice(idx, 1);
-                        renderEvt();
-                    };
-                    list.appendChild(li);
-                });
-            };
-            renderEvt();
-
-            evtCard.querySelector('#add-evt').onclick = () => {
-                const input = evtCard.querySelector('#new-evt');
-                if (input.value.trim()) {
-                    if (!data.events) data.events = [];
-                    data.events.push(input.value.trim());
-                    input.value = '';
-                    renderEvt();
-                }
-            };
-            dash.appendChild(evtCard);
-
-            // Append to Data View
-            document.getElementById('data-view').insertBefore(dash, document.querySelector('.table-header-controls'));
-
-        } else {
-            leadershipSection.style.display = 'none';
-        }
-    },
-
-    // --- Table Rendering (With scroll and dynamic columns) ---
-    renderTable(employees) {
-        const tableContainer = document.querySelector('.table-container');
-        const tableBody = document.getElementById('employee-table-body');
-        const tableHead = document.querySelector('thead tr');
-
-        tableBody.innerHTML = '';
-        tableHead.innerHTML = ''; // Reset headers
-
-        if (!employees || employees.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">No data available</td></tr>';
-            return;
-        }
-
-        // Generate headers dynamically based on the first object keys
-        const headers = Object.keys(employees[0]);
-        headers.forEach(h => {
-            const th = document.createElement('th');
-            th.textContent = h.toUpperCase();
-            tableHead.appendChild(th);
-        });
-
-        employees.forEach(emp => {
-            const tr = document.createElement('tr');
-            headers.forEach(h => {
-                const td = document.createElement('td');
-                if (h.toLowerCase() === 'status') {
-                    // Status Badge Logic
-                    const status = emp[h];
-                    const color = status.toLowerCase() === 'active' ? 'var(--accent-color)' : '#f59e0b';
-                    td.innerHTML = `<span style="padding: 2px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); color: ${color}; font-size: 0.8rem; border: 1px solid ${color}">${status}</span>`;
-                } else {
-                    td.textContent = emp[h];
-                }
-                tr.appendChild(td);
-            });
-            tableBody.appendChild(tr);
-        });
-
-        // Update member count
-        const countSpan = document.getElementById('member-count');
-        if (countSpan) countSpan.textContent = `${employees.length} Members`;
-    },
-
-    toggleSettingsModal(show) {
-        const modal = document.getElementById('settings-modal');
-        if (show) {
-            modal.style.display = 'flex';
-        } else {
-            modal.style.display = 'none';
-        }
+        card.appendChild(container);
     }
 };
