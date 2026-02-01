@@ -1,42 +1,30 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Platform Services Portal</title>
+    <title>Enterprise Portal Platform Services</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-
-    <!-- Mock Auth Local -->
-    <div id="auth-overlay">
-        <div class="loader"></div>
-        <h2>Authenticating...</h2>
-        <p style="color: var(--text-secondary);">Verifying Enterprise Credentials</p>
-    </div>
-
+    
     <!-- Header -->
     <header>
         <div class="logo-area">
             <div class="orb-icon"></div>
-            <span class="logo-text">Enterprise Portal Platform Services</span>
+            <div class="logo-text">Enterprise Portal<br>Platform Services</div>
         </div>
-
-        <div class="title-area">
-            <!-- Center Search Bar -->
-            <div class="search-bar">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="global-search" placeholder="Search services (e.g. 'unix l2', 'build')...">
-            </div>
+        
+        <!-- Search -->
+        <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" id="global-search" placeholder="Search services (e.g. 'unix l2', 'build')...">
         </div>
 
         <div class="controls">
-            <button class="icon-btn" title="Settings" id="settings-btn">⚙️</button>
+            <button class="icon-btn" title="Settings">⚙️</button>
             <button class="icon-btn" title="Notifications">🔔</button>
-            <button class="icon-btn" id="theme-toggle" title="Toggle Theme">☀</button>
-
+            <button class="icon-btn" title="Toggle Theme">☀</button>
             <div class="user-profile">
                 <div class="avatar">AU</div>
                 <div class="user-info">
@@ -47,104 +35,31 @@
         </div>
     </header>
 
-    <!-- Navigation -->
+    <!-- Top Navigation -->
     <nav class="top-nav" id="top-nav">
-        <!-- JS Injected -->
+        <!-- Rendered by JS -->
     </nav>
 
-    <!-- Main Content -->
-    <main id="main-container">
-        <!-- Layout 1: Sidebar -->
+    <!-- Main Layout -->
+    <div id="main-container">
+        <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">Services Directory</div>
-            <div id="sidebar-content">
-                <!-- JS Injected -->
+            <div class="sidebar-header">
+                <span>Services Directory</span>
+                <button class="toggle-btn" onclick="Actions.toggleSidebar()">◀</button>
+            </div>
+            <div class="sidebar-content" id="sidebar-content">
+                <!-- Rendered by JS -->
             </div>
         </aside>
 
-        <!-- Layout 2/3: Content Panel -->
-        <section class="content-area" id="content-area">
-            <div id="content-placeholder" style="padding: 3rem; text-align: center; color: var(--text-secondary);">
-                <h2>Select a Service to View Details</h2>
-            </div>
-
-            <div id="details-view" class="hidden">
-                <div class="content-header">
-                    <h2 id="view-title">Service Details</h2>
-                    <p id="view-subtitle" style="color: var(--text-secondary);">Service Description</p>
-                </div>
-
-                <div class="sub-tabs" id="sub-tabs">
-                    <!-- JS Injected -->
-                </div>
-
-                <div class="data-container" id="data-view">
-                    <!-- Dynamic Content -->
-                    <div id="leadership-section">
-                        <h3 class="section-title">Leadership Team</h3>
-                        <div class="manager-grid" id="manager-grid"></div>
-                    </div>
-
-                    <div class="table-header-controls">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <h3 class="section-title" style="margin:0;">Team Details</h3>
-                            <span id="member-count" style="color:var(--text-secondary); font-size: 0.9rem;">0
-                                Members</span>
-                        </div>
-                        <div class="actions">
-                            <input type="file" id="file-input" accept=".csv" class="hidden" style="display:none;">
-                            <button id="import-btn" class="btn-secondary">
-                                <span style="margin-right: 0.5rem;">📂</span> Upload CSV
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="table-container">
-                        <!-- Scrollable Table Wrapper -->
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <!-- Dynamic Headers -->
-                                    </tr>
-                                </thead>
-                                <tbody id="employee-table-body">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal-overlay hidden" style="display: none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>System Settings</h3>
-                <button class="icon-btn" id="close-settings">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <button class="tab-btn active">RBAC</button>
-                    <button class="tab-btn">Audit Logs</button>
-                    <button class="tab-btn">App Errors</button>
-                </div>
-                <div class="settings-content">
-                    <p>User Role: <strong>Admin</strong></p>
-                    <hr style="margin: 1rem 0; border-color: var(--border-color);">
-                    <div class="audit-log-sample">
-                        <p><small>Today 10:23 AM</small> - User accessed Team Details</p>
-                        <p><small>Today 09:15 AM</small> - System Backup Completed</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Main Content Area -->
+        <main class="content-area" id="main-content">
+            <!-- Dynamic Views here -->
+        </main>
     </div>
 
-    <!-- Switch to Module -->
-    <script type="module" src="js/main.js"></script>
+    <!-- Single App File -->
+    <script src="app.js"></script>
 </body>
-
 </html>
