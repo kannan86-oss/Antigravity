@@ -1,6 +1,4 @@
 // --- App Controller ---
-// Depends on: AppState, Render
-
 const App = {
     init() {
         Render.init();
@@ -11,30 +9,40 @@ const App = {
             this.loadPlatformOverview();
         } else {
             AppState.setCurrentTab(key);
-            Render.init();
+            Render.init(); // Refresh Nav & Content
         }
     },
 
     loadPlatformOverview() {
         AppState.setCurrentTab('Home');
-        Render.renderMainContent(); // Renders Overview by default when sidebarSelection is null
-        Render.renderTopNav(); // Update active state
-        Render.renderSidebar(); // Show directory
+        Render.renderMainContent(); // Defaults to Overview
+        Render.renderTopNav();
+        Render.renderSidebar();
     },
 
     selectSidebarItem(key) {
         AppState.setSidebarSelection(key);
-        Render.renderSidebar(); // Update active
-        Render.renderMainContent(); // Show details
+
+        // Default to first sub-service
+        const groupData = ServiceData.Services[key];
+        if (groupData) {
+            const firstSub = Object.keys(groupData)[0];
+            AppState.setSubService(firstSub);
+        }
+
+        Render.renderSidebar();   // Update active class
+        Render.renderMainContent(); // Show Service View
+    },
+
+    switchSubService(key) {
+        AppState.setSubService(key);
+        Render.renderMainContent(); // Re-render Service View with new sub-service data
     },
 
     toggleSidebar() {
         AppState.toggleSidebar();
-        Render.renderSidebar(); // Update classes
+        Render.renderSidebar();
     }
 };
 
-// Auto-start
-window.onload = () => {
-    App.init();
-};
+window.onload = () => App.init();

@@ -739,12 +739,47 @@ th {
     margin-right: 0.5rem;
 }
 
-/* Dashboard Styles */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding-top: 1rem;
+/* Sub Nav Pills */
+.sub-nav-pills {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.pill {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.pill:hover {
+    background: var(--bg-secondary);
+    color: #fff;
+}
+
+.pill.active {
+    background: #fff;
+    /* White active background per design? Or standard accent? */
+    /* Screenshot shows White background with dark text for active pill */
+    color: #000;
+    border-color: #fff;
+}
+
+.service-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.service-header {
+    margin-bottom: 2rem;
 }
 
 @media (min-width: 1024px) {

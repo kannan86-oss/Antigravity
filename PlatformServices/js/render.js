@@ -1,14 +1,10 @@
 // --- Rendering Layer ---
-// Depends on: ServiceData, AppState
-
 const Render = {
-    // Icons
     Icons: {
         doc: '<span class="icon-doc">📄</span>',
         edit: '<span class="icon-edit">✏️</span>',
         trophy: '<span class="icon-trophy">🏆</span>',
         calendar: '<span class="icon-calendar">📅</span>',
-        add: '+'
     },
 
     init() {
@@ -37,13 +33,7 @@ const Render = {
         if (!content) return;
         content.innerHTML = '';
 
-        // Only show Service Directory if on Home (or we could show it always?)
-        // Prompt implies Sidebar Items are: SA L3, Platform L2... 
-        // These are strictly part of the "Service Directory".
-
-        // We will render these groups.
         const groups = Object.keys(ServiceData.Services);
-
         groups.forEach(key => {
             const item = document.createElement('div');
             item.className = 'sidebar-item';
@@ -61,45 +51,37 @@ const Render = {
             `;
 
             if (AppState.currentSidebarSelection === key) item.classList.add('active');
-
             item.onclick = () => App.selectSidebarItem(key);
             content.appendChild(item);
         });
 
-        // Handle Collapse Class
-        if (AppState.isSidebarCollapsed) {
-            sidebar.classList.add('sidebar-collapsed');
-        } else {
-            sidebar.classList.remove('sidebar-collapsed');
-        }
+        // Toggle Class
+        sidebar.classList.toggle('sidebar-collapsed', AppState.isSidebarCollapsed);
     },
 
     renderMainContent() {
         const container = document.getElementById('main-content');
         container.innerHTML = '';
 
-        // 1. Home -> Overview (Default)
+        // 1. Platform Overview
         if (AppState.currentTopTab === 'Home' && !AppState.currentSidebarSelection) {
             this.renderPlatformOverview(container);
             return;
         }
 
-        // 2. Home -> Service Group selected
+        // 2. Service View (Sub-Level)
         if (AppState.currentTopTab === 'Home' && AppState.currentSidebarSelection) {
-            this.renderServiceGroup(container, AppState.currentSidebarSelection);
+            this.renderServiceView(container);
             return;
         }
 
         // 3. Other Tabs
-        container.innerHTML = `<div style="padding:2rem;"><h2>${AppState.currentTopTab}</h2><p>Placeholder content.</p></div>`;
+        container.innerHTML = `<div style="padding:2rem;"><h2>${AppState.currentTopTab}</h2><p>Placeholder.</p></div>`;
     },
 
     renderPlatformOverview(container) {
-        // Wrapper
-        const wrapper = document.createElement('div');
-        wrapper.className = 'data-container';
+        const wrapper = this.createWrapper();
 
-        // Header
         const header = document.createElement('div');
         header.className = 'content-header';
         header.innerHTML = `
@@ -108,151 +90,154 @@ const Render = {
         `;
         wrapper.appendChild(header);
 
-        // Grid
+        this.renderDashboard(wrapper, ServiceData.Overview);
+        container.appendChild(wrapper);
+    },
+
+    renderServiceView(container) {
+        const category = AppState.currentSidebarSelection;
+        const subService = AppState.currentSubService;
+        const groupData = ServiceData.Services[category];
+        const data = groupData[subService];
+
+        const wrapper = this.createWrapper();
+
+        // Title Area
+        const header = document.createElement('div');
+        header.className = 'service-header'; // New class for spacing
+        header.innerHTML = `
+            <div style="font-size:0.8rem; color:var(--accent-color); margin-bottom:0.25rem;">${category.toUpperCase()}</div>
+            <h1>Home - ${subService}</h1>
+        `;
+        wrapper.appendChild(header);
+
+        // Sub-Nav Pills
+        const pills = document.createElement('div');
+        pills.className = 'sub-nav-pills';
+        Object.keys(groupData).forEach(key => {
+            const pill = document.createElement('button');
+            pill.className = `pill ${key === subService ? 'active' : ''}`;
+            pill.textContent = key;
+            pill.onclick = () => App.switchSubService(key);
+            pills.appendChild(pill);
+        });
+        wrapper.appendChild(pills);
+
+        // Sub-Title
+        const subTitle = document.createElement('div');
+        subTitle.innerHTML = `
+            <h3 style="margin-top:2rem; margin-bottom:0.5rem; color:#fff;">Service Overview</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1rem;">Key metrics and service description</p>
+        `;
+        wrapper.appendChild(subTitle);
+
+        // Dashboard
+        if (data) {
+            this.renderDashboard(wrapper, data);
+        }
+
+        container.appendChild(wrapper);
+    },
+
+    renderDashboard(container, data) {
         const grid = document.createElement('div');
         grid.className = 'dashboard-grid';
 
-        // Card 1: About (Full Width)
-        const aboutData = ServiceData.Overview;
+        // About Card
         const aboutCard = this.createCard('about', 'About the Service', this.Icons.doc, true);
-
-        // Edit Button in Header
-        const editBtn = document.createElement('button');
+        const editBtn = document.createElement('button'); // Add edit icon
         editBtn.className = 'icon-btn';
         editBtn.innerHTML = this.Icons.edit;
-        editBtn.title = "Edit Description";
         aboutCard.querySelector('.card-header').appendChild(editBtn);
 
-        // Content
-        const descDiv = document.createElement('div');
-        descDiv.className = 'editable-text';
-        descDiv.contentEditable = true;
-        descDiv.innerText = aboutData.description;
-        descDiv.onblur = (e) => aboutData.description = e.target.innerText;
-        aboutCard.appendChild(descDiv);
-
+        const desc = document.createElement('div');
+        desc.className = 'editable-text';
+        desc.contentEditable = true;
+        desc.innerText = data.description || '';
+        desc.onblur = (e) => data.description = e.target.innerText;
+        aboutCard.appendChild(desc);
         grid.appendChild(aboutCard);
 
-        // Card 2: Achievements
+        // Achievements
         const achCard = this.createCard('achievements', 'Recent Achievements', this.Icons.trophy);
-        this.renderAchievementsList(achCard, aboutData.achievements);
+        this.renderAchievementsList(achCard, data.achievements || []);
         this.renderRichInput(achCard, (text) => {
             const date = new Date().toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            aboutData.achievements.push({ text, date });
-            this.renderAchievementsList(achCard, aboutData.achievements);
+            if (!data.achievements) data.achievements = [];
+            data.achievements.push({ text, date, status: 'ok' });
+            this.renderAchievementsList(achCard, data.achievements);
         });
         grid.appendChild(achCard);
 
-        // Card 3: Events
+        // Events
         const evtCard = this.createCard('events', 'Upcoming Events', this.Icons.calendar);
-        this.renderEventsList(evtCard, aboutData.events);
+        this.renderEventsList(evtCard, data.events || []);
         this.renderRichInput(evtCard, (text) => {
-            aboutData.events.push(text);
-            this.renderEventsList(evtCard, aboutData.events);
+            if (!data.events) data.events = [];
+            data.events.push(text);
+            this.renderEventsList(evtCard, data.events);
         });
         grid.appendChild(evtCard);
 
-        wrapper.appendChild(grid);
-        container.appendChild(wrapper);
+        container.appendChild(grid);
     },
 
-    renderServiceGroup(container, groupKey) {
-        const groupData = ServiceData.Services[groupKey];
-        if (!groupData) return;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'data-container';
-
-        wrapper.innerHTML = `<h2 class="section-title">${groupKey}</h2>`;
-
-        // Render Sub-Services as simple cards for now? 
-        // Or reuse the dashboard logic for the FIRST sub-service?
-        // Prompt said: "load the specific service details"
-        // Let's list them first.
-        const list = document.createElement('div');
-
-        Object.keys(groupData).forEach(subKey => {
-            const div = document.createElement('div');
-            div.style.marginBottom = '2rem';
-            div.innerHTML = `<h3>${subKey}</h3>`;
-
-            // Just show description for now to verify
-            const d = groupData[subKey];
-            div.innerHTML += `<p>${d.description}</p>`;
-            list.appendChild(div);
-        });
-
-        wrapper.appendChild(list);
-        container.appendChild(wrapper);
+    // --- Helpers ---
+    createWrapper() {
+        const div = document.createElement('div');
+        div.className = 'data-container';
+        return div;
     },
-
-    // --- Components ---
 
     createCard(id, title, icon, fullWidth = false) {
         const card = document.createElement('div');
         card.className = `dashboard-card ${fullWidth ? 'full-width' : ''}`;
-        card.innerHTML = `
-            <div class="card-header">
-                <h3>${icon} ${title}</h3>
-            </div>
-        `;
+        card.innerHTML = `<div class="card-header"><h3>${icon} ${title}</h3></div>`;
         return card;
     },
 
-    renderAchievementsList(card, data) {
-        let ul = card.querySelector('ul');
-        if (!ul) {
-            ul = document.createElement('ul');
+    renderAchievementsList(card, list) {
+        let ul = card.querySelector('ul') || document.createElement('ul');
+        if (!ul.parentNode) {
             ul.className = 'item-list';
-            // Insert after header
-            card.insertBefore(ul, card.querySelector('.input-area') || null);
+            card.insertBefore(ul, card.querySelector('.input-area'));
         }
         ul.innerHTML = '';
-        data.forEach(item => {
+        list.forEach(item => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <div class="ach-item">
+                 <div class="ach-item">
                     <span class="check">✓</span>
                     <div class="ach-content">
                         <div class="ach-text">${item.text}</div>
                         <div class="ach-date">${item.date}</div>
                     </div>
-                </div>
-            `;
+                </div>`;
             ul.appendChild(li);
         });
     },
 
-    renderEventsList(card, data) {
-        let ul = card.querySelector('ul');
-        if (!ul) {
-            ul = document.createElement('ul');
+    renderEventsList(card, list) {
+        let ul = card.querySelector('ul') || document.createElement('ul');
+        if (!ul.parentNode) {
             ul.className = 'item-list';
-            card.insertBefore(ul, card.querySelector('.input-area') || null);
+            card.insertBefore(ul, card.querySelector('.input-area'));
         }
         ul.innerHTML = '';
-        data.forEach(item => {
+        list.forEach(item => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="evt-item">
-                    <span class="bullet">•</span>
-                    <span>${item}</span>
-                </div>
-            `;
+            li.innerHTML = `<div class="evt-item"><span class="bullet">•</span><span>${item}</span></div>`;
             ul.appendChild(li);
         });
     },
 
     renderRichInput(card, onAdd) {
-        let container = card.querySelector('.input-area');
-        if (container) return; // Already exists
-
-        container = document.createElement('div');
-        container.className = 'input-area';
-
-        container.innerHTML = `
+        if (card.querySelector('.input-area')) return;
+        const area = document.createElement('div');
+        area.className = 'input-area';
+        area.innerHTML = `
             <div class="rich-toolbar">
-                <button title="Bold"><b>B</b></button>
+                <button title="Bold">B</button>
                 <button title="Italic"><i>I</i></button>
                 <button title="Underline"><u>U</u></button>
             </div>
@@ -261,17 +246,10 @@ const Render = {
                 <button class="add-btn">+</button>
             </div>
         `;
-
-        const input = container.querySelector('input');
-        const btn = container.querySelector('.add-btn');
-
-        btn.onclick = () => {
-            if (input.value.trim()) {
-                onAdd(input.value.trim());
-                input.value = '';
-            }
+        const inp = area.querySelector('input');
+        area.querySelector('.add-btn').onclick = () => {
+            if (inp.value.trim()) { onAdd(inp.value.trim()); inp.value = ''; }
         };
-
-        card.appendChild(container);
+        card.appendChild(area);
     }
 };
